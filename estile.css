@@ -6,6 +6,8 @@
 }
 
 body {
+    position: relative;
+    isolation: isolate;
     background-color: #f4f6f9;
     display: flex;
     justify-content: center;
@@ -15,8 +17,55 @@ body {
     padding: 28px 16px;
 }
 
+body::before,
+body::after {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    color: rgba(220, 20, 60, 0.42);
+    content: "\2665";
+    font-size: 112px;
+    line-height: 1;
+    pointer-events: none;
+    filter: blur(5px);
+}
+
+body::before {
+    text-shadow:
+        8vw 10vh 0 rgba(220, 20, 60, 0.42),
+        26vw 24vh 0 rgba(220, 20, 60, 0.36),
+        51vw 12vh 0 rgba(220, 20, 60, 0.40),
+        76vw 30vh 0 rgba(220, 20, 60, 0.42),
+        14vw 45vh 0 rgba(220, 20, 60, 0.36),
+        43vw 52vh 0 rgba(220, 20, 60, 0.40),
+        72vw 68vh 0 rgba(220, 20, 60, 0.38),
+        90vw 91vh 0 rgba(220, 20, 60, 0.40),
+        32vw 76vh 0 rgba(220, 20, 60, 0.38),
+        58vw 92vh 0 rgba(220, 20, 60, 0.42),
+        4vw 88vh 0 rgba(220, 20, 60, 0.36),
+        84vw 48vh 0 rgba(220, 20, 60, 0.40);
+}
+
+body::after {
+    color: rgba(255, 0, 45, 0.34);
+    font-size: 76px;
+    text-shadow:
+        21vw 24vh 0 rgba(255, 0, 45, 0.34),
+        59vw 39vh 0 rgba(255, 0, 45, 0.30),
+        87vw 12vh 0 rgba(255, 0, 45, 0.32),
+        4vw 53vh 0 rgba(255, 0, 45, 0.30),
+        34vw 91vh 0 rgba(255, 0, 45, 0.34),
+        64vw 85vh 0 rgba(255, 0, 45, 0.32),
+        12vw 31vh 0 rgba(255, 0, 45, 0.32),
+        47vw 67vh 0 rgba(255, 0, 45, 0.34),
+        80vw 57vh 0 rgba(255, 0, 45, 0.30),
+        38vw 7vh 0 rgba(255, 0, 45, 0.32);
+}
+
 .cadastro-container {
-    background-color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.68);
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
     padding: 30px;
     border-radius: 8px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
