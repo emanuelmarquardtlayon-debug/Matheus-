@@ -38,6 +38,46 @@ body {
     line-height: 1.5;
 }
 
+.pergunta-item label {
+    display: block;
+    margin-bottom: 6px;
+}
+
+.pergunta-item textarea {
+    display: block;
+    width: 100%;
+    min-height: 64px;
+    padding: 9px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 1.4;
+    resize: vertical;
+}
+
+.pergunta-item textarea:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.perguntas-container {
+    margin-bottom: 20px;
+}
+
+.titulo-edicao {
+    margin-bottom: 14px;
+    color: #333;
+    font-size: 18px;
+}
+
+.mensagem-salvamento {
+    min-height: 20px;
+    margin-top: 12px;
+    color: #287a45;
+    font-size: 14px;
+    text-align: center;
+}
+
 .input-group {
     margin-bottom: 15px;
 }

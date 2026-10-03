@@ -14,21 +14,124 @@
             Bem-vindo(a)! Responda às perguntas abaixo:
         </p>
 
+        <form id="formRespostas">
         <div class="perguntas-container">
+            <h3 class="titulo-edicao">Editar respostas</h3>
             <ol class="perguntas-lista">
-                <li>Há quanto tempo vocês estão juntos?</li>
-                <li>Quando você começou a gostar dele(a)?</li>
-                <li>O que você acha mais bonito no seu namorado(a)?</li>
-                <li>O que vocês mais gostam de fazer juntos?</li>
-                <li>Por que você gosta dele(a)?</li>
-                <li>O que você mais gosta nele(a)?</li>
-                <li>Com que frequência vocês se beijam?</li>
-                <li>Quais são as coisas que você sempre quis que seu parceiro(a) fizesse com você?</li>
-                <li>Se vocês pudessem definir o relacionamento de vocês com 3 emojis, quais seriam?</li>
-                <li>Você se vê em um futuro com ele(a)?</li>
+                <li class="pergunta-item">
+                    <label for="resposta1">Há quanto tempo vocês estão juntos?</label>
+                    <textarea id="resposta1" name="resposta1" rows="2" placeholder="Digite sua resposta..."></textarea>
+                </li>
+                <li class="pergunta-item">
+                    <label for="resposta2">Quando você começou a gostar dele(a)?</label>
+                    <textarea id="resposta2" name="resposta2" rows="2" placeholder="Digite sua resposta..."></textarea>
+                </li>
+                <li class="pergunta-item">
+                    <label for="resposta3">O que você acha mais bonito no seu namorado(a)?</label>
+                    <textarea id="resposta3" name="resposta3" rows="2" placeholder="Digite sua resposta..."></textarea>
+                </li>
+                <li class="pergunta-item">
+                    <label for="resposta4">O que vocês mais gostam de fazer juntos?</label>
+                    <textarea id="resposta4" name="resposta4" rows="2" placeholder="Digite sua resposta..."></textarea>
+                </li>
+                <li class="pergunta-item">
+                    <label for="resposta5">Por que você gosta dele(a)?</label>
+                    <textarea id="resposta5" name="resposta5" rows="2" placeholder="Digite sua resposta..."></textarea>
+                </li>
+                <li class="pergunta-item">
+                    <label for="resposta6">O que você mais gosta nele(a)?</label>
+                    <textarea id="resposta6" name="resposta6" rows="2" placeholder="Digite sua resposta..."></textarea>
+                </li>
+                <li class="pergunta-item">
+                    <label for="resposta7">Com que frequência vocês se beijam?</label>
+                    <textarea id="resposta7" name="resposta7" rows="2" placeholder="Digite sua resposta..."></textarea>
+                </li>
+                <li class="pergunta-item">
+                    <label for="resposta8">Quais são as coisas que você sempre quis que seu parceiro(a) fizesse com você?</label>
+                    <textarea id="resposta8" name="resposta8" rows="2" placeholder="Digite sua resposta..."></textarea>
+                </li>
+                <li class="pergunta-item">
+                    <label for="resposta9">Se vocês pudessem definir o relacionamento de vocês com 3 emojis, quais seriam?</label>
+                    <textarea id="resposta9" name="resposta9" rows="2" placeholder="Digite sua resposta..."></textarea>
+                </li>
+                <li class="pergunta-item">
+                    <label for="resposta10">Você se vê em um futuro com ele(a)?</label>
+                    <textarea id="resposta10" name="resposta10" rows="2" placeholder="Digite sua resposta..."></textarea>
+                </li>
             </ol>
         </div>
+            <button type="submit" class="btn-submit">Salvar respostas</button>
+            <p id="mensagemSalvamento" class="mensagem-salvamento" role="status" aria-live="polite"></p>
+        </form>
     </div>
 
+    <script>
+        const formRespostas = document.getElementById('formRespostas');
+        const mensagemSalvamento = document.getElementById('mensagemSalvamento');
+        const chaveRespostas = 'respostasPerguntasCasal';
+        const chaveRegistroFirebase = 'registroFirebasePerguntasCasal';
+        const camposResposta = formRespostas.querySelectorAll('textarea');
+        let idRegistroFirebase = null;
+
+        try {
+            const respostasSalvas = JSON.parse(localStorage.getItem(chaveRespostas) || '[]');
+            idRegistroFirebase = localStorage.getItem(chaveRegistroFirebase);
+            respostasSalvas.forEach((resposta, indice) => {
+                if (camposResposta[indice]) {
+                    camposResposta[indice].value = resposta;
+                }
+            });
+        } catch (erro) {
+            mensagemSalvamento.textContent = 'Não foi possível carregar as respostas salvas.';
+        }
+
+        formRespostas.addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const respostas = Object.fromEntries(
+                Array.from(camposResposta, campo => [campo.name, campo.value.trim()])
+            );
+            const registro = {
+                respostas,
+                atualizadoEm: new Date().toISOString()
+            };
+
+            try {
+                localStorage.setItem(chaveRespostas, JSON.stringify(Object.values(respostas)));
+            } catch (erro) {
+                mensagemSalvamento.textContent = 'A cópia local não pôde ser salva; tentando enviar ao Firebase...';
+            }
+
+            mensagemSalvamento.textContent = 'Salvando respostas...';
+
+            try {
+                const urlFirebase = idRegistroFirebase
+                    ? `https://matheus-5ad92-default-rtdb.firebaseio.com/respostas/${encodeURIComponent(idRegistroFirebase)}.json`
+                    : 'https://matheus-5ad92-default-rtdb.firebaseio.com/respostas.json';
+                const respostaFirebase = await fetch(
+                    urlFirebase,
+                    {
+                        method: idRegistroFirebase ? 'PUT' : 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(registro)
+                    }
+                );
+
+                if (!respostaFirebase.ok) {
+                    throw new Error(`Firebase respondeu com status ${respostaFirebase.status}`);
+                }
+
+                if (!idRegistroFirebase) {
+                    const resultado = await respostaFirebase.json();
+                    idRegistroFirebase = resultado.name;
+                    localStorage.setItem(chaveRegistroFirebase, idRegistroFirebase);
+                }
+
+                mensagemSalvamento.textContent = 'Respostas atualizadas no Firebase e neste navegador.';
+            } catch (erro) {
+                mensagemSalvamento.textContent = 'Não foi possível salvar no Firebase. Verifique as regras de gravação do banco e a conexão.';
+            }
+        });
+    </script>
 </body>
 </html>
