@@ -25,8 +25,10 @@
         </p>
 
         <form id="formRespostas">
+        <div class="acoes-nova-resposta">
+            <button id="novaResposta" type="button" class="btn-nova-resposta"><span aria-hidden="true">+</span> Nova resposta</button>
+        </div>
         <div class="perguntas-container">
-            <h3 class="titulo-edicao">Editar respostas</h3>
             <ol class="perguntas-lista">
                 <li class="pergunta-item">
                     <label for="resposta1">Há quanto tempo vocês estão juntos?</label>
@@ -84,7 +86,11 @@
         const menuDono = document.querySelector('.menu-dono');
         const botaoMenuDono = document.getElementById('botaoMenuDono');
         const opcoesDono = document.getElementById('opcoesDono');
+        const botaoNovaResposta = document.getElementById('novaResposta');
         let idRegistroFirebase = null;
+        let perfilAtual = null;
+        let chaveRespostasPessoa = null;
+        let chaveRegistroPessoa = null;
 
         botaoMenuDono.addEventListener('click', function() {
             const aberto = botaoMenuDono.getAttribute('aria-expanded') === 'true';
@@ -111,8 +117,11 @@
         });
 
         try {
-            const respostasSalvas = JSON.parse(localStorage.getItem(chaveRespostas) || '[]');
-            idRegistroFirebase = localStorage.getItem(chaveRegistroFirebase);
+            perfilAtual = JSON.parse(localStorage.getItem('cadastroAtualPerguntasCasal') || 'null');
+            chaveRespostasPessoa = `${chaveRespostas}:${perfilAtual?.id || 'anonimo'}`;
+            chaveRegistroPessoa = `${chaveRegistroFirebase}:${perfilAtual?.id || 'anonimo'}`;
+            const respostasSalvas = JSON.parse(localStorage.getItem(chaveRespostasPessoa) || '[]');
+            idRegistroFirebase = localStorage.getItem(chaveRegistroPessoa);
             respostasSalvas.forEach((resposta, indice) => {
                 if (camposResposta[indice]) {
                     camposResposta[indice].value = resposta;
@@ -122,6 +131,22 @@
             mensagemSalvamento.textContent = 'Não foi possível carregar as respostas salvas.';
         }
 
+        botaoNovaResposta.addEventListener('click', function() {
+            const existeResposta = Array.from(camposResposta).some(campo => campo.value.trim());
+            if (existeResposta && !window.confirm('Começar uma nova resposta? O envio já salvo continuará guardado.')) {
+                return;
+            }
+
+            camposResposta.forEach(campo => {
+                campo.value = '';
+            });
+            idRegistroFirebase = null;
+            localStorage.removeItem(chaveRegistroPessoa);
+            localStorage.removeItem(chaveRespostasPessoa);
+            mensagemSalvamento.textContent = 'Nova resposta iniciada. Preencha e salve para criar outro envio.';
+            camposResposta[0].focus();
+        });
+
         formRespostas.addEventListener('submit', async function(event) {
             event.preventDefault();
 
@@ -130,11 +155,13 @@
             );
             const registro = {
                 respostas,
+                cadastroId: perfilAtual?.id || null,
+                pessoaNome: perfilAtual?.nome || 'Cadastro não identificado',
                 atualizadoEm: new Date().toISOString()
             };
 
             try {
-                localStorage.setItem(chaveRespostas, JSON.stringify(Object.values(respostas)));
+                localStorage.setItem(chaveRespostasPessoa, JSON.stringify(Object.values(respostas)));
             } catch (erro) {
                 mensagemSalvamento.textContent = 'A cópia local não pôde ser salva; tentando enviar ao Firebase...';
             }
@@ -161,7 +188,7 @@
                 if (!idRegistroFirebase) {
                     const resultado = await respostaFirebase.json();
                     idRegistroFirebase = resultado.name;
-                    localStorage.setItem(chaveRegistroFirebase, idRegistroFirebase);
+                    localStorage.setItem(chaveRegistroPessoa, idRegistroFirebase);
                 }
 
                 mensagemSalvamento.textContent = 'Respostas atualizadas no Firebase e neste navegador.';

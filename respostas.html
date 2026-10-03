@@ -20,6 +20,7 @@
         <section class="secao-painel" aria-labelledby="tituloCadastros">
             <h3 id="tituloCadastros">Cadastros</h3>
             <p id="statusCadastros" class="status-respostas" role="status" aria-live="polite">Carregando cadastros...</p>
+            <nav id="listaPessoas" class="lista-pessoas" aria-label="Filtrar por pessoa"></nav>
             <div id="listaCadastros" class="lista-respostas" aria-label="Cadastros salvos"></div>
         </section>
 
@@ -47,10 +48,14 @@
             ['resposta10', 'Você se vê em um futuro com ele(a)?']
         ];
         const statusCadastros = document.getElementById('statusCadastros');
+        const listaPessoas = document.getElementById('listaPessoas');
         const listaCadastros = document.getElementById('listaCadastros');
         const statusRespostas = document.getElementById('statusRespostas');
         const listaRespostas = document.getElementById('listaRespostas');
         const botaoAtualizar = document.getElementById('atualizarRespostas');
+        let cadastrosCarregados = [];
+        let respostasCarregadas = [];
+        let cadastroSelecionadoId = null;
 
         function adicionarTexto(tag, classe, texto, pai) {
             const elemento = document.createElement(tag);
@@ -73,11 +78,86 @@
         }
 
         function ordenarMaisRecentes(registros) {
-            return Object.values(registros || {}).sort((registroA, registroB) => {
+            return Object.entries(registros || {}).map(([firebaseId, registro]) => ({
+                ...registro,
+                firebaseId
+            })).sort((registroA, registroB) => {
                 const dataA = new Date(registroA.dataCadastro || registroA.atualizadoEm || registroA.dataEnvio || 0).getTime();
                 const dataB = new Date(registroB.dataCadastro || registroB.atualizadoEm || registroB.dataEnvio || 0).getTime();
                 return (Number.isFinite(dataB) ? dataB : 0) - (Number.isFinite(dataA) ? dataA : 0);
             });
+        }
+
+        function contarRespostasPessoa(cadastroId) {
+            return respostasCarregadas
+                .filter(registro => registro.cadastroId === cadastroId)
+                .reduce((total, registro) => {
+                    const respostas = registro.respostas || {};
+                    return total + Object.values(respostas).filter(resposta => String(resposta || '').trim()).length;
+                }, 0);
+        }
+
+        function renderizarListaPessoas() {
+            listaPessoas.replaceChildren();
+            const todos = document.createElement('button');
+            todos.type = 'button';
+            todos.className = 'botao-pessoa';
+            todos.textContent = 'Todos';
+            todos.setAttribute('aria-pressed', String(cadastroSelecionadoId === null));
+            todos.addEventListener('click', function() {
+                cadastroSelecionadoId = null;
+                renderizarListaPessoas();
+                renderizarCadastros();
+                renderizarRespostas();
+            });
+            listaPessoas.append(todos);
+
+            const pessoasOrdenadas = [...cadastrosCarregados].sort((pessoaA, pessoaB) => {
+                const diferencaRespostas = contarRespostasPessoa(pessoaB.firebaseId) - contarRespostasPessoa(pessoaA.firebaseId);
+                return diferencaRespostas || (pessoaA.nome || '').localeCompare(pessoaB.nome || '', 'pt-BR');
+            });
+
+            pessoasOrdenadas.forEach(cadastro => {
+                const botao = document.createElement('button');
+                botao.type = 'button';
+                botao.className = 'botao-pessoa';
+                const quantidadeRespostas = contarRespostasPessoa(cadastro.firebaseId);
+                botao.textContent = `${cadastro.nome || 'Cadastro sem nome'} (${quantidadeRespostas} ${quantidadeRespostas === 1 ? 'resposta' : 'respostas'})`;
+                botao.setAttribute('aria-pressed', String(cadastro.firebaseId === cadastroSelecionadoId));
+                botao.addEventListener('click', function() {
+                    cadastroSelecionadoId = cadastro.firebaseId;
+                    renderizarListaPessoas();
+                    renderizarCadastros();
+                    renderizarRespostas();
+                });
+                listaPessoas.append(botao);
+            });
+        }
+
+        function renderizarCadastros() {
+            listaCadastros.replaceChildren();
+            const registros = cadastroSelecionadoId
+                ? cadastrosCarregados.filter(cadastro => cadastro.firebaseId === cadastroSelecionadoId)
+                : cadastrosCarregados;
+
+            registros.forEach(mostrarCadastro);
+            if (registros.length === 0 && cadastroSelecionadoId) {
+                statusCadastros.textContent = 'Cadastro não encontrado.';
+            }
+        }
+
+        function renderizarRespostas() {
+            listaRespostas.replaceChildren();
+            const registros = cadastroSelecionadoId
+                ? respostasCarregadas.filter(registro => registro.cadastroId === cadastroSelecionadoId)
+                : respostasCarregadas;
+
+            registros.forEach(mostrarRegistro);
+            if (cadastroSelecionadoId && registros.length === 0) {
+                statusRespostas.textContent = 'Nenhuma resposta vinculada a esta pessoa. Envios antigos podem não ter identificação.';
+            } else if (registros.length > 0) {
+                statusRespostas.textContent = `${registros.length} envio(s) carregado(s).`;
+            }
         }
 
         function mostrarCadastro(cadastro, indice) {
@@ -104,8 +184,10 @@
         function mostrarRegistro(registro, indice) {
             const artigo = document.createElement('article');
             artigo.className = 'registro-respostas';
-            adicionarTexto('h3', 'registro-titulo', `Envio ${indice + 1}`, artigo);
-            adicionarTexto('p', 'registro-data', formatarData(registro.atualizadoEm || registro.dataEnvio), artigo);
+            const cadastro = cadastrosCarregados.find(item => item.firebaseId === registro.cadastroId);
+            const nomePessoa = registro.pessoaNome || cadastro?.nome || 'Pessoa não identificada';
+            adicionarTexto('h3', 'registro-titulo', `Respostas de ${nomePessoa}`, artigo);
+            adicionarTexto('p', 'registro-data', `Envio ${indice + 1} · ${formatarData(registro.atualizadoEm || registro.dataEnvio)}`, artigo);
 
             const respostas = registro.respostas || registro;
             perguntas.forEach(([chave, pergunta], numero) => {
@@ -130,14 +212,19 @@
                 }
 
                 const dados = await resposta.json();
-                const registros = ordenarMaisRecentes(dados);
-                if (registros.length === 0) {
+                cadastrosCarregados = ordenarMaisRecentes(dados);
+                if (cadastrosCarregados.length === 0) {
                     statusCadastros.textContent = 'Ainda não há cadastros salvos.';
+                    listaPessoas.replaceChildren();
                     return;
                 }
 
-                registros.forEach(mostrarCadastro);
-                statusCadastros.textContent = `${registros.length} cadastro(s) carregado(s).`;
+                if (cadastroSelecionadoId && !cadastrosCarregados.some(cadastro => cadastro.firebaseId === cadastroSelecionadoId)) {
+                    cadastroSelecionadoId = null;
+                }
+                renderizarListaPessoas();
+                renderizarCadastros();
+                statusCadastros.textContent = `${cadastrosCarregados.length} cadastro(s) carregado(s).`;
             } catch (erro) {
                 statusCadastros.textContent = 'Não foi possível carregar os cadastros. Verifique a conexão e as regras de leitura do Firebase.';
             }
@@ -153,14 +240,15 @@
                 }
 
                 const dados = await resposta.json();
-                const registros = ordenarMaisRecentes(dados);
-                if (registros.length === 0) {
+                respostasCarregadas = ordenarMaisRecentes(dados);
+                renderizarListaPessoas();
+                if (respostasCarregadas.length === 0) {
                     statusRespostas.textContent = 'Ainda não há respostas salvas.';
                     return;
                 }
 
-                registros.forEach(mostrarRegistro);
-                statusRespostas.textContent = `${registros.length} envio(s) carregado(s).`;
+                renderizarRespostas();
+                statusRespostas.textContent = `${respostasCarregadas.length} envio(s) carregado(s).`;
             } catch (erro) {
                 statusRespostas.textContent = 'Não foi possível carregar as respostas. Verifique a conexão e as regras de leitura do Firebase.';
             }

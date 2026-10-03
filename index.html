@@ -146,6 +146,14 @@
                     throw new Error(`Firebase respondeu com status ${respostaFirebase.status}`);
                 }
 
+                const cadastroSalvo = await respostaFirebase.json();
+                localStorage.setItem('cadastroAtualPerguntasCasal', JSON.stringify({
+                    id: cadastroSalvo.name,
+                    nome: nome.value.trim(),
+                    email: email.value.trim(),
+                    dataNascimento: dataNascimento.value
+                }));
+
                 window.location.href = 'index..html';
             } catch (erro) {
                 mensagemErro.textContent = 'Não foi possível salvar o cadastro. Verifique a conexão e as regras de gravação do Firebase.';
