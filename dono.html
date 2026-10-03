@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acesso do dono</title>
+    <link rel="stylesheet" href="estile.css">
+</head>
+<body>
+    <main class="cadastro-container">
+        <h2>Acesso do dono</h2>
+        <p class="aviso-autenticacao">Este acesso é apenas uma barreira visual; as credenciais ficam visíveis no código e não protegem os dados do Firebase.</p>
+
+        <form id="formLoginDono">
+            <div class="input-group">
+                <label for="acessoDono">Acesso</label>
+                <input type="text" id="acessoDono" autocomplete="off" required placeholder="Digite o acesso">
+            </div>
+
+            <div class="input-group">
+                <label for="senhaDono">Senha</label>
+                <input type="password" id="senhaDono" autocomplete="off" required placeholder="Digite a senha">
+            </div>
+
+            <button class="btn-submit" type="submit">Entrar</button>
+            <p id="mensagemLoginDono" class="mensagem-erro" role="status" aria-live="polite"></p>
+        </form>
+
+        <a class="link-voltar" href="index.html">Voltar ao cadastro</a>
+    </main>
+
+    <script>
+        const formLoginDono = document.getElementById('formLoginDono');
+        const acessoDono = document.getElementById('acessoDono');
+        const senhaDono = document.getElementById('senhaDono');
+        const mensagemLoginDono = document.getElementById('mensagemLoginDono');
+        formLoginDono.addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            if (acessoDono.value.trim() === 'quero' && senhaDono.value === 'oioi') {
+                window.location.href = 'respostas.html';
+                return;
+            }
+
+            mensagemLoginDono.textContent = 'Acesso ou senha incorretos.';
+            senhaDono.value = '';
+            senhaDono.focus();
+        });
+    </script>
+</body>
+</html>

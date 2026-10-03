@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Respostas recebidas</title>
+    <link rel="stylesheet" href="estile.css">
+</head>
+<body>
+    <main class="cadastro-container painel-respostas">
+        <header class="cabecalho-respostas">
+            <h2>Área do dono</h2>
+            <div class="acoes-painel">
+                <button id="atualizarRespostas" class="btn-secundario" type="button">Atualizar</button>
+                <button id="sairPainel" class="btn-secundario" type="button">Sair</button>
+            </div>
+        </header>
+
+        <p class="aviso-autenticacao">A lista é carregada do Firebase. Proteja a leitura do banco com autenticação e regras do Realtime Database.</p>
+        <section class="secao-painel" aria-labelledby="tituloCadastros">
+            <h3 id="tituloCadastros">Cadastros</h3>
+            <p id="statusCadastros" class="status-respostas" role="status" aria-live="polite">Carregando cadastros...</p>
+            <div id="listaCadastros" class="lista-respostas" aria-label="Cadastros salvos"></div>
+        </section>
+
+        <section class="secao-painel" aria-labelledby="tituloRespostas">
+            <h3 id="tituloRespostas">Respostas</h3>
+            <p id="statusRespostas" class="status-respostas" role="status" aria-live="polite">Carregando respostas...</p>
+            <div id="listaRespostas" class="lista-respostas" aria-label="Respostas salvas"></div>
+        </section>
+    </main>
+
+    <script>
+        const urlBanco = 'https://matheus-5ad92-default-rtdb.firebaseio.com';
+        const endpointCadastros = `${urlBanco}/cadastros.json`;
+        const endpointRespostas = `${urlBanco}/respostas.json`;
+        const perguntas = [
+            ['resposta1', 'Há quanto tempo vocês estão juntos?'],
+            ['resposta2', 'Quando você começou a gostar dele(a)?'],
+            ['resposta3', 'O que você acha mais bonito no seu namorado(a)?'],
+            ['resposta4', 'O que vocês mais gostam de fazer juntos?'],
+            ['resposta5', 'Por que você gosta dele(a)?'],
+            ['resposta6', 'O que você mais gosta nele(a)?'],
+            ['resposta7', 'Com que frequência vocês se beijam?'],
+            ['resposta8', 'Quais são as coisas que você sempre quis que seu parceiro(a) fizesse com você?'],
+            ['resposta9', 'Se vocês pudessem definir o relacionamento de vocês com 3 emojis, quais seriam?'],
+            ['resposta10', 'Você se vê em um futuro com ele(a)?']
+        ];
+        const statusCadastros = document.getElementById('statusCadastros');
+        const listaCadastros = document.getElementById('listaCadastros');
+        const statusRespostas = document.getElementById('statusRespostas');
+        const listaRespostas = document.getElementById('listaRespostas');
+        const botaoAtualizar = document.getElementById('atualizarRespostas');
+
+        function adicionarTexto(tag, classe, texto, pai) {
+            const elemento = document.createElement(tag);
+            elemento.className = classe;
+            elemento.textContent = texto;
+            pai.append(elemento);
+            return elemento;
+        }
+
+        function formatarData(valor) {
+            if (!valor) return 'Data não informada';
+
+            const data = new Date(valor);
+            if (Number.isNaN(data.getTime())) return 'Data não informada';
+
+            return new Intl.DateTimeFormat('pt-BR', {
+                dateStyle: 'medium',
+                timeStyle: 'short'
+            }).format(data);
+        }
+
+        function ordenarMaisRecentes(registros) {
+            return Object.values(registros || {}).sort((registroA, registroB) => {
+                const dataA = new Date(registroA.dataCadastro || registroA.atualizadoEm || registroA.dataEnvio || 0).getTime();
+                const dataB = new Date(registroB.dataCadastro || registroB.atualizadoEm || registroB.dataEnvio || 0).getTime();
+                return (Number.isFinite(dataB) ? dataB : 0) - (Number.isFinite(dataA) ? dataA : 0);
+            });
+        }
+
+        function mostrarCadastro(cadastro, indice) {
+            const artigo = document.createElement('article');
+            artigo.className = 'registro-respostas';
+            adicionarTexto('h4', 'registro-titulo', `Cadastro ${indice + 1}`, artigo);
+
+            [
+                ['Nome', cadastro.nome],
+                ['E-mail', cadastro.email],
+                ['Data de nascimento', cadastro.dataNascimento],
+                ['Data do cadastro', formatarData(cadastro.dataCadastro)]
+            ].forEach(([rotulo, valor]) => {
+                const linha = document.createElement('p');
+                linha.className = 'dado-cadastro';
+                adicionarTexto('strong', 'rotulo-cadastro', `${rotulo}: `, linha);
+                adicionarTexto('span', 'valor-cadastro', valor || 'Não informado', linha);
+                artigo.append(linha);
+            });
+
+            listaCadastros.append(artigo);
+        }
+
+        function mostrarRegistro(registro, indice) {
+            const artigo = document.createElement('article');
+            artigo.className = 'registro-respostas';
+            adicionarTexto('h3', 'registro-titulo', `Envio ${indice + 1}`, artigo);
+            adicionarTexto('p', 'registro-data', formatarData(registro.atualizadoEm || registro.dataEnvio), artigo);
+
+            const respostas = registro.respostas || registro;
+            perguntas.forEach(([chave, pergunta], numero) => {
+                const resposta = Array.isArray(respostas) ? respostas[numero] : respostas[chave];
+                const linha = document.createElement('div');
+                linha.className = 'resposta-linha';
+                adicionarTexto('p', 'resposta-pergunta', pergunta, linha);
+                adicionarTexto('p', 'resposta-valor', resposta ? String(resposta) : 'Sem resposta.', linha);
+                artigo.append(linha);
+            });
+
+            listaRespostas.append(artigo);
+        }
+
+        async function carregarCadastros() {
+            statusCadastros.textContent = 'Carregando cadastros...';
+            listaCadastros.replaceChildren();
+            try {
+                const resposta = await fetch(endpointCadastros);
+                if (!resposta.ok) {
+                    throw new Error(`Firebase respondeu com status ${resposta.status}.`);
+                }
+
+                const dados = await resposta.json();
+                const registros = ordenarMaisRecentes(dados);
+                if (registros.length === 0) {
+                    statusCadastros.textContent = 'Ainda não há cadastros salvos.';
+                    return;
+                }
+
+                registros.forEach(mostrarCadastro);
+                statusCadastros.textContent = `${registros.length} cadastro(s) carregado(s).`;
+            } catch (erro) {
+                statusCadastros.textContent = 'Não foi possível carregar os cadastros. Verifique a conexão e as regras de leitura do Firebase.';
+            }
+        }
+
+        async function carregarRespostas() {
+            statusRespostas.textContent = 'Carregando respostas...';
+            listaRespostas.replaceChildren();
+            try {
+                const resposta = await fetch(endpointRespostas);
+                if (!resposta.ok) {
+                    throw new Error(`Firebase respondeu com status ${resposta.status}.`);
+                }
+
+                const dados = await resposta.json();
+                const registros = ordenarMaisRecentes(dados);
+                if (registros.length === 0) {
+                    statusRespostas.textContent = 'Ainda não há respostas salvas.';
+                    return;
+                }
+
+                registros.forEach(mostrarRegistro);
+                statusRespostas.textContent = `${registros.length} envio(s) carregado(s).`;
+            } catch (erro) {
+                statusRespostas.textContent = 'Não foi possível carregar as respostas. Verifique a conexão e as regras de leitura do Firebase.';
+            }
+        }
+
+        async function atualizarPainel() {
+            botaoAtualizar.disabled = true;
+            await Promise.all([carregarCadastros(), carregarRespostas()]);
+            botaoAtualizar.disabled = false;
+        }
+
+        botaoAtualizar.addEventListener('click', atualizarPainel);
+        document.getElementById('sairPainel').addEventListener('click', function() {
+            window.location.href = 'dono.html';
+        });
+
+        atualizarPainel();
+    </script>
+</body>
+</html>

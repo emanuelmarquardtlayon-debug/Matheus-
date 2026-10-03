@@ -6,10 +6,20 @@
     <title>Perguntas para Casal</title>
     <link rel="stylesheet" href="estile.css">
 </head>
-<body>
+<body class="pagina-perguntas">
 
     <div class="cadastro-container">
-        <h2>Perguntas para Casal</h2>
+        <div class="cabecalho-pagina">
+            <h2>Perguntas para Casal</h2>
+            <div class="menu-dono">
+                <button id="botaoMenuDono" class="botao-menu-dono" type="button" aria-label="Abrir opções" aria-expanded="false" aria-controls="opcoesDono">
+                    <span aria-hidden="true"><i></i><i></i><i></i></span>
+                </button>
+                <div id="opcoesDono" class="opcoes-dono" hidden>
+                    <button id="abrirAcessoDono" class="opcao-menu-dono" type="button">Entrar como dono</button>
+                </div>
+            </div>
+        </div>
         <p style="text-align: center; margin-bottom: 20px; color: #666;">
             Bem-vindo(a)! Responda às perguntas abaixo:
         </p>
@@ -71,7 +81,34 @@
         const chaveRespostas = 'respostasPerguntasCasal';
         const chaveRegistroFirebase = 'registroFirebasePerguntasCasal';
         const camposResposta = formRespostas.querySelectorAll('textarea');
+        const menuDono = document.querySelector('.menu-dono');
+        const botaoMenuDono = document.getElementById('botaoMenuDono');
+        const opcoesDono = document.getElementById('opcoesDono');
         let idRegistroFirebase = null;
+
+        botaoMenuDono.addEventListener('click', function() {
+            const aberto = botaoMenuDono.getAttribute('aria-expanded') === 'true';
+            botaoMenuDono.setAttribute('aria-expanded', String(!aberto));
+            opcoesDono.hidden = aberto;
+        });
+
+        document.getElementById('abrirAcessoDono').addEventListener('click', function() {
+            window.location.href = 'dono.html';
+        });
+
+        document.addEventListener('click', function(event) {
+            if (!menuDono.contains(event.target)) {
+                opcoesDono.hidden = true;
+                botaoMenuDono.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                opcoesDono.hidden = true;
+                botaoMenuDono.setAttribute('aria-expanded', 'false');
+            }
+        });
 
         try {
             const respostasSalvas = JSON.parse(localStorage.getItem(chaveRespostas) || '[]');
