@@ -64,6 +64,33 @@
         const botaoMenuDono = document.getElementById('botaoMenuDono');
         const opcoesDono = document.getElementById('opcoesDono');
 
+        dataNascimento.addEventListener('input', function() {
+            const posicaoOriginal = dataNascimento.selectionStart;
+            const digitosAntesDoCursor = dataNascimento.value.slice(0, posicaoOriginal).replace(/\D/g, '').length;
+            const digitos = dataNascimento.value.replace(/\D/g, '').slice(0, 8);
+            let dataFormatada = digitos;
+
+            if (digitos.length > 4) {
+                dataFormatada = `${digitos.slice(0, 2)}/${digitos.slice(2, 4)}/${digitos.slice(4)}`;
+            } else if (digitos.length > 2) {
+                dataFormatada = `${digitos.slice(0, 2)}/${digitos.slice(2)}`;
+            }
+
+            dataNascimento.value = dataFormatada;
+
+            let novaPosicao = 0;
+            let digitosContados = 0;
+            while (novaPosicao < dataFormatada.length && digitosContados < digitosAntesDoCursor) {
+                if (/\d/.test(dataFormatada[novaPosicao])) {
+                    digitosContados++;
+                }
+                novaPosicao++;
+            }
+            if (digitosAntesDoCursor === 2 && digitos.length > 2) novaPosicao = 3;
+            if (digitosAntesDoCursor === 4 && digitos.length > 4) novaPosicao = 6;
+            dataNascimento.setSelectionRange(novaPosicao, novaPosicao);
+        });
+
         botaoMenuDono.addEventListener('click', function() {
             const aberto = botaoMenuDono.getAttribute('aria-expanded') === 'true';
             botaoMenuDono.setAttribute('aria-expanded', String(!aberto));
