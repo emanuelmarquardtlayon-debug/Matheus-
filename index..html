@@ -147,6 +147,53 @@
             camposResposta[0].focus();
         });
 
+        function avaliarRespostas(respostas) {
+            const respostasNormalizadas = Object.fromEntries(
+                Object.entries(respostas).map(([chave, texto]) => [
+                    chave,
+                    texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+                ])
+            );
+            const quantidadeRespondida = Object.values(respostas).filter(Boolean).length;
+            const contemTermo = (textos, termos) => textos.some(texto => {
+                const palavras = texto.split(/[^a-z0-9]+/);
+                return termos.some(termo => palavras.some(palavra => palavra.startsWith(termo)));
+            });
+            const sinaisCarinho = contemTermo(
+                [respostasNormalizadas.resposta2, respostasNormalizadas.resposta3, respostasNormalizadas.resposta5, respostasNormalizadas.resposta6],
+                ['amo', 'amor', 'carinh', 'gost', 'admir', 'bonit', 'lind', 'especial', 'respeit']
+            );
+            const sinaisParceria = contemTermo(
+                [respostasNormalizadas.resposta4, respostasNormalizadas.resposta8],
+                ['junt', 'convers', 'rir', 'passe', 'viaj', 'assist', 'cozinh', 'brinc', 'apoio', 'parcer', 'amizad']
+            );
+            const sinaisFuturo = contemTermo(
+                [respostasNormalizadas.resposta10],
+                ['sim', 'quero', 'casar', 'familia', 'filh', 'sempre', 'futuro', 'imagino', 'constru']
+            );
+            const observacoes = [];
+
+            if (sinaisCarinho) observacoes.push('carinho e admiração');
+            if (sinaisParceria) observacoes.push('momentos compartilhados e parceria');
+            if (sinaisFuturo) observacoes.push('planos de futuro a dois');
+
+            let avaliacao;
+            if (quantidadeRespondida < 4) {
+                avaliacao = 'Ainda há poucas respostas para formar uma avaliação mais completa.';
+            } else if (observacoes.length >= 2) {
+                avaliacao = 'Avaliação: suas respostas revelam uma relação com bons sinais de conexão e parceria.';
+            } else if (observacoes.length === 1) {
+                avaliacao = 'Avaliação: suas respostas mostram sinais positivos, mas ainda contam só parte da história.';
+            } else {
+                avaliacao = 'Avaliação: suas respostas ainda não trazem sinais suficientes para entender melhor a relação.';
+            }
+
+            const resumo = observacoes.length
+                ? `Pelas suas respostas, aparecem sinais de ${observacoes.join(', ')}.`
+                : 'As respostas ainda não mostram claramente esses aspectos.';
+            return `Respostas salvas! Leitura das respostas (${quantidadeRespondida}/10): ${resumo} ${avaliacao}`;
+        }
+
         formRespostas.addEventListener('submit', async function(event) {
             event.preventDefault();
 
@@ -191,7 +238,7 @@
                     localStorage.setItem(chaveRegistroPessoa, idRegistroFirebase);
                 }
 
-                mensagemSalvamento.textContent = 'Respostas atualizadas no Firebase e neste navegador.';
+                mensagemSalvamento.textContent = avaliarRespostas(respostas);
             } catch (erro) {
                 mensagemSalvamento.textContent = 'Não foi possível salvar no Firebase. Verifique as regras de gravação do banco e a conexão.';
             }
