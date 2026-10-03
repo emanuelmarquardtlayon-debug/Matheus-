@@ -17,6 +17,15 @@ body {
     padding: 28px 16px;
 }
 
+body.pagina-perguntas {
+    background: #71834a url("IMG_20261003_190618_005.jpg") center / cover fixed no-repeat;
+}
+
+body.pagina-perguntas::before,
+body.pagina-perguntas::after {
+    display: none;
+}
+
 body::before,
 body::after {
     position: fixed;
